@@ -1,5 +1,5 @@
 defaults:
-- base: test
+# - base: test
 - _self_
 
 hydra:
@@ -17,9 +17,9 @@ basic:
   experiment_name: test_3
   channels: [3,4,5]
   dataset_path: dset
-  epochs: 3
+  epochs: 10
   train_val_split: 0.8
-  batch_size: 32
+  batch_size: 128
   normalize_bw: True
   normalize_bw_non_one: True
   normalize_color: False

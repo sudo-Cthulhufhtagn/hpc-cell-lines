@@ -63,12 +63,13 @@ def main(conf):
     # np.random(42)
     # ic(cfg.channels, cfg.channels_lists[cfg.channels])
     dataset, classes = get_annots(os.path.join(top, 'image.index.txt'))
+    create_dataset(dataset, classes, cfg, top, cwd)
     train_X, test_X, train_y, test_y = train_test_split(dataset, 
                                                         classes, 
                                                         test_size=0.5, 
                                                         random_state=42, 
-                                                        # stratify=classes, # TODO: uncomment
-                                                        shuffle=False, )
+                                                        stratify=classes,
+                                                        shuffle=True, )
     # split also to train and val
     
     # images_train, labels_train = create_dataset(train_X, train_y, cfg, top)
@@ -150,11 +151,11 @@ def main(conf):
         
         # mlflow.tensorflow.autolog()
         history = model.fit(
-            train_dataset.batch(batch_size).prefetch(1), 
+            train_dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE), 
             batch_size=batch_size, 
             epochs=cfg.epochs,
             # callbacks=[model_checkpoint_callback],
-            validation_data=val_dataset.batch(batch_size),
+            validation_data=val_dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE),
             )
         
         keys = history.history.keys()
