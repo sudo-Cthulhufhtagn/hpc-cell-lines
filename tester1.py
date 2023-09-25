@@ -61,7 +61,7 @@ def main(conf):
     top = os.path.join(hydra.utils.get_original_cwd(),
                        top)
     # np.random(42)
-    ic(cfg.channels, cfg.channels_lists[cfg.channels])
+    # ic(cfg.channels, cfg.channels_lists[cfg.channels])
     dataset, classes = get_annots(os.path.join(top, 'image.index.txt'))
     train_X, test_X, train_y, test_y = train_test_split(dataset, 
                                                         classes, 
@@ -85,9 +85,9 @@ def main(conf):
     train_percentage = cfg.train_val_split
     train_images, val_images, train_labels, val_labels = train_test_split(train_X, train_y, test_size=1-train_percentage, random_state=42, stratify=train_y)
     cwd = utils.get_original_cwd()
-    # images_train, labels_train = create_dataset(train_images, train_labels, cfg, top, cwd)
-    images_train, labels_train = create_dataset(dataset, classes, cfg, top, cwd)
-    # val_images, val_labels = create_dataset(val_images, val_labels, cfg, top, cwd)
+    images_train, labels_train = create_dataset(train_images, train_labels, cfg, top, cwd)
+    # images_train, labels_train = create_dataset(dataset, classes, cfg, top, cwd)
+    val_images, val_labels = create_dataset(val_images, val_labels, cfg, top, cwd)
     train_dataset = tf.data.Dataset.from_generator(
         image_generator,
         output_signature=(
@@ -96,7 +96,16 @@ def main(conf):
         ),
         args=(images_train, labels_train, cfg.channels_lists[cfg.channels], True)
     )
-    val_dataset = train_dataset
+    
+    # val_dataset = train_dataset
+    val_dataset = tf.data.Dataset.from_generator(
+        image_generator,
+        output_signature=(
+            tf.TensorSpec(shape=(*cfg.input_shape, cfg.n_channels), dtype=tf.float32),
+            tf.TensorSpec(shape=(4), dtype=tf.uint8)  # Assuming labels are strings
+        ),
+        args=(val_images, val_labels, cfg.channels_lists[cfg.channels], True)
+    )
     
     # val_dataset = train_dataset.take(int(len(train_dataset)*(1-train_percentage)))
     # train_dataset = train_dataset.skip(int(len(train_dataset)*train_percentage))
@@ -155,6 +164,8 @@ def main(conf):
         mlflow.log_params(cfg)
         mlflow.log_artifacts(utils.to_absolute_path('conf'))
         mlflow.tensorflow.log_model(model, 'model')
+        # get os git hash commit
+        mlflow.log_param('git_commit', os.popen('git rev-parse HEAD').read().strip())
         # mlflow.log_metric('val_accuracy', history.history['val_accuracy'][-1])
         
         # Example usage:

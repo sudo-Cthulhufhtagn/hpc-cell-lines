@@ -181,7 +181,7 @@ def create_dataset(X, y, pars, top, cwd) -> Tuple[np.ndarray, np.ndarray]:
                 #     if row['Row'] in positions[indx][0] and row['Column'] in positions[indx][1]:
                 #         labels.extend([indx]*len(keypoints))
                 #         break
-                break # TODO: remove this shit
+                # break # TODO: remove this shit
     else:
         for file in os.listdir(dset_path):
             # check if filename is matching at least part of the string from train_X['__URl]

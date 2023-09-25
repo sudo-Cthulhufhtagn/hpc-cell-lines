@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
-# top = '/gpfs/space/projects/PerkinElmer/2022-09-07_CellPaintingAndBrightfield/hs/0bfb6012-5223-4b0d-ab6c-ef728112c175/images/'
-top = '/home/am/projects/tu/biomed/'
+top = '/gpfs/space/projects/PerkinElmer/2022-09-07_CellPaintingAndBrightfield/hs/0bfb6012-5223-4b0d-ab6c-ef728112c175/images/'
+# top = '/home/am/projects/tu/biomed/'
 cachedir = 'cac' # cache for blobs_cutter and joblib
 
 # name: (rows, columns)
