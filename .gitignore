@@ -3,3 +3,5 @@ dset
 mlruns
 cac
 multirun
+outputs/
+core.*

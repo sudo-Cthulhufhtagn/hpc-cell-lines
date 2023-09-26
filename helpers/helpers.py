@@ -83,8 +83,8 @@ def impreprocessor(paths: list, pars: Parametrizer, crop_list: list, save_path, 
     for i, path in enumerate(paths):
         img = cv2.imread(path, -1)
         if pars.normalize_bw_non_one:
-            img = (img-img.min()) / img.max() * 255
-            img = img.astype('uint8')
+            img = (img-img.min()) / img.max() * (2**16 - 1)
+            img = img.astype('uint16')
         
         image[...,i] = img
         

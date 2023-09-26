@@ -6,7 +6,7 @@ from tensorflow.keras.optimizers import Adam
 def get_model(cfg):
     # TODOÖ add 
     base_model = ResNet50(include_top=False, weights=cfg.weights, input_shape=cfg.input_shape+(cfg.n_channels,), )
-    if cfg.weights:
+    if cfg.freeze_backbone:
         for layer in base_model.layers:
             layer.trainable = False
     

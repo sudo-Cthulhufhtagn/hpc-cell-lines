@@ -48,7 +48,9 @@ def image_generator(filenames, labels, channels, normalize_color=False):
             
             if normalize_color:
                 # using mean and standard deviation of all channels
-                image = (image - image.mean()) / image.std()
+                for ch in range(image.shape[-1]):
+                    image[...,ch] = (image[...,ch] - image[...,ch].mean()) / image[...,ch].std()
+                # image = (image - image.mean()) / image.std()
                 
             # ic(type(image), type(label), type(label[0]), type(image[0]))
             
@@ -68,7 +70,7 @@ def main(conf):
     create_dataset(dataset, classes, cfg, top, cwd)
     train_X, test_X, train_y, test_y = train_test_split(dataset, 
                                                         classes, 
-                                                        test_size=0.5, 
+                                                        test_size=cfg.splits.test, 
                                                         random_state=42, 
                                                         stratify=classes,
                                                         shuffle=True, )
@@ -85,8 +87,7 @@ def main(conf):
     if cfg.model == 'ResNet50':
         from helpers.model_factory.res_net import get_model
     
-    train_percentage = cfg.train_val_split
-    train_images, val_images, train_labels, val_labels = train_test_split(train_X, train_y, test_size=1-train_percentage, random_state=42, stratify=train_y)
+    train_images, val_images, train_labels, val_labels = train_test_split(train_X, train_y, test_size=cfg.splits.val, random_state=42, stratify=train_y)
     images_train, labels_train = create_dataset(train_images, train_labels, cfg, top, cwd)
     # images_train, labels_train = create_dataset(dataset, classes, cfg, top, cwd)
     val_images, val_labels = create_dataset(val_images, val_labels, cfg, top, cwd)
@@ -96,7 +97,7 @@ def main(conf):
             tf.TensorSpec(shape=(*cfg.input_shape, cfg.n_channels), dtype=tf.float32),
             tf.TensorSpec(shape=(4), dtype=tf.uint8)  # Assuming labels are strings
         ),
-        args=(images_train, labels_train, cfg.channels_lists[cfg.channels], True)
+        args=(images_train, labels_train, cfg.channels_lists[cfg.channels], cfg.normalize_ch_color)
     )
     
     # val_dataset = train_dataset
@@ -106,8 +107,9 @@ def main(conf):
             tf.TensorSpec(shape=(*cfg.input_shape, cfg.n_channels), dtype=tf.float32),
             tf.TensorSpec(shape=(4), dtype=tf.uint8)  # Assuming labels are strings
         ),
-        args=(val_images, val_labels, cfg.channels_lists[cfg.channels], True)
+        args=(val_images, val_labels, cfg.channels_lists[cfg.channels], cfg.normalize_ch_color)
     )
+    print(f"Length train: {len(images_train)} val: {len(val_images)} classes tr: {labels_train.sum(axis=0)} val: {val_labels.sum(axis=0)}")
     
     # val_dataset = train_dataset.take(int(len(train_dataset)*(1-train_percentage)))
     # train_dataset = train_dataset.skip(int(len(train_dataset)*train_percentage))

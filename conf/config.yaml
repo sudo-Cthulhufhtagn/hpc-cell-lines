@@ -5,7 +5,7 @@ defaults:
 hydra:
   sweeper:
     params:
-      basic.channels: range(5)
+      basic.channels: range(0,11)
 
         # - [1,2,3]
         # - [1,3,4]
@@ -14,12 +14,13 @@ hydra:
 basic:
   # experiment_name: test_0
   channels_lists: [[1,2,3],[1,2,4],[1,2,5],[1,3,4],[1,3,5],[1,4,5],[2,3,4],[2,3,5],[2,4,5],[3,4,5]]
-  experiment_name: test_3
+  experiment_name: test_4
   channels: [3,4,5]
   dataset_path: dset
-  epochs: 10
-  train_val_split: 0.8
-  batch_size: 128
+  normalize_ch_color: True
+  freeze_backbone: False
+  epochs: 20
+  batch_size: 256
   normalize_bw: True
   normalize_bw_non_one: True
   normalize_color: False
@@ -31,7 +32,10 @@ basic:
   padding: rescale #value
   padding_value: 0
   weights: 'imagenet' # or null
-  d: 80
+  d: 100
   channel_3_avg_12: False
   shuffle_dataset: True
   model: ResNet50
+  splits:
+    test: 0.2
+    val: 0.2
