@@ -63,6 +63,8 @@ def main(conf):
     # np.random(42)
     # ic(cfg.channels, cfg.channels_lists[cfg.channels])
     dataset, classes = get_annots(os.path.join(top, 'image.index.txt'))
+    
+    cwd = utils.get_original_cwd()
     create_dataset(dataset, classes, cfg, top, cwd)
     train_X, test_X, train_y, test_y = train_test_split(dataset, 
                                                         classes, 
@@ -85,7 +87,6 @@ def main(conf):
     
     train_percentage = cfg.train_val_split
     train_images, val_images, train_labels, val_labels = train_test_split(train_X, train_y, test_size=1-train_percentage, random_state=42, stratify=train_y)
-    cwd = utils.get_original_cwd()
     images_train, labels_train = create_dataset(train_images, train_labels, cfg, top, cwd)
     # images_train, labels_train = create_dataset(dataset, classes, cfg, top, cwd)
     val_images, val_labels = create_dataset(val_images, val_labels, cfg, top, cwd)
