@@ -27,7 +27,7 @@ print(f"[CHECK]: GPU - {tf.config.list_physical_devices('GPU')}")
 #%%
 # print debug for gpu
 
-def image_generator(filenames, labels, channels, normalize_color=False):
+def image_generator(filenames, labels, channels, normalize_color=False, channel_3_avg_12=False):
     for filename, label in zip(filenames, labels):
         # ic(filename, label)
         filename = filename.decode('utf-8')
@@ -45,6 +45,10 @@ def image_generator(filenames, labels, channels, normalize_color=False):
             # for i in range(len(imgs)):
             #     ic(imgs[i].shape)
             image = np.stack(imgs, axis=-1)
+            
+            if channel_3_avg_12:
+                image[...,2] = (image[...,0] + image[...,1]) / 2
+                
             
             if normalize_color:
                 # using mean and standard deviation of all channels

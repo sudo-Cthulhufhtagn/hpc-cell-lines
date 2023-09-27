@@ -31,7 +31,7 @@ def blobs_cutter(path, normalize_bw=False):
     return [list(map(int, p.pt)) for p in keypoints]
 
 
-
+@memory.cache
 def get_annots(path):
     """Craetes dataset of files and classes.
 
@@ -41,6 +41,7 @@ def get_annots(path):
     
     df = pd.read_csv(path, delimiter='\t', skiprows=2)
     df = df.iloc[:-2]
+    df = df[df['Channel'] == 1] # interesting
     df['Row'] = df['Row'].astype('int')
     df['Column'] = df['Column'].astype('int')
     
@@ -67,6 +68,7 @@ def get_annots(path):
     
     return ch1, tr0
 
+@memory.cache
 def impreprocessor(paths: list, pars: Parametrizer, crop_list: list, save_path, label) -> np.ndarray:
     """
     Read images from paths and return numpy array of shape (len(paths), *input_shape, n_channels)
@@ -77,7 +79,7 @@ def impreprocessor(paths: list, pars: Parametrizer, crop_list: list, save_path, 
     # craete np array with zeros of shape (len(paths), *input_shape, n_channels)
     images_crop = np.zeros((len(crop_list), *pars.input_shape, pars.n_channels))
     images_crop = np.zeros((len(crop_list), *pars.input_shape, 7))
-    image = np.zeros((*pars.image_shape, len(paths)), )#dtype='uint16')
+    image = np.zeros((*pars.image_shape, len(paths)), dtype='uint16')
     # print(image.dtype)
     
     for i, path in enumerate(paths):
@@ -187,8 +189,9 @@ def create_dataset(X, y, pars, top, cwd, create_only=False) -> Tuple[np.ndarray,
         print("Dataset exists")
         for file in tqdm.tqdm(os.listdir(dset_path)):
             # check if filename is matching at least part of the string from train_X['__URl]
-            
-            if X['__URL'].str.contains(file.split('-ch')[0], case=False).any():
+            matches = X['__URL'].str.contains(file.split('-ch')[0], case=False)
+            if matches.any():
+                # X = X[~matches]
                 images_train.append(os.path.join(dset_path, file))
                 match = re.search(r'_cl\d', file).group()
                 # ic(match)
