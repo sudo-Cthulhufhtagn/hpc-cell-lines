@@ -152,7 +152,7 @@ def mkdir(path):
         return True
     return False
 
-def create_dataset(X, y, pars, top, cwd) -> Tuple[np.ndarray, np.ndarray]:
+def create_dataset(X, y, pars, top, cwd, create_only=False) -> Tuple[np.ndarray, np.ndarray]:
     """
     Prepare dataset for training.
     #TODO: replace top
@@ -164,6 +164,7 @@ def create_dataset(X, y, pars, top, cwd) -> Tuple[np.ndarray, np.ndarray]:
     dset_name = 'i{}_d{}_pad{}'.format(pars.input_shape[0], pars.d, pars.padding)
     dset_path = os.path.join(cwd, dset_path, dset_name)
     if mkdir(dset_path):
+        print("Dataset doesn't exist")
         for i in tqdm.tqdm(range(len(X))):
             row = X.iloc[i]
             label = y.iloc[i]
@@ -182,8 +183,9 @@ def create_dataset(X, y, pars, top, cwd) -> Tuple[np.ndarray, np.ndarray]:
                 #         labels.extend([indx]*len(keypoints))
                 #         break
                 # break # TODO: remove this shit
-    else:
-        for file in os.listdir(dset_path):
+    elif not create_only:
+        print("Dataset exists")
+        for file in tqdm.tqdm(os.listdir(dset_path)):
             # check if filename is matching at least part of the string from train_X['__URl]
             
             if X['__URL'].str.contains(file.split('-ch')[0], case=False).any():

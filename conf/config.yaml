@@ -37,5 +37,5 @@ basic:
   shuffle_dataset: True
   model: ResNet50
   splits:
-    test: 0.2
+    test: 0.9
     val: 0.2

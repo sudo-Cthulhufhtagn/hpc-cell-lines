@@ -64,10 +64,12 @@ def main(conf):
                        top)
     # np.random(42)
     # ic(cfg.channels, cfg.channels_lists[cfg.channels])
+    print("Loading annotations")
     dataset, classes = get_annots(os.path.join(top, 'image.index.txt'))
     
     cwd = utils.get_original_cwd()
-    create_dataset(dataset, classes, cfg, top, cwd)
+    print("Craeting largest dataset")
+    create_dataset(dataset, classes, cfg, top, cwd, True)
     train_X, test_X, train_y, test_y = train_test_split(dataset, 
                                                         classes, 
                                                         test_size=cfg.splits.test, 
@@ -88,8 +90,10 @@ def main(conf):
         from helpers.model_factory.res_net import get_model
     
     train_images, val_images, train_labels, val_labels = train_test_split(train_X, train_y, test_size=cfg.splits.val, random_state=42, stratify=train_y)
+    print("Loading train dataset")
     images_train, labels_train = create_dataset(train_images, train_labels, cfg, top, cwd)
     # images_train, labels_train = create_dataset(dataset, classes, cfg, top, cwd)
+    print("Loading val dataset")
     val_images, val_labels = create_dataset(val_images, val_labels, cfg, top, cwd)
     train_dataset = tf.data.Dataset.from_generator(
         image_generator,
