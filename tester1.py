@@ -46,8 +46,7 @@ def image_generator(filenames, labels, channels, normalize_color=False, channel_
             #     ic(imgs[i].shape)
             image = np.stack(imgs, axis=-1)
             
-            if channel_3_avg_12:
-                image[...,2] = (image[...,0] + image[...,1]) / 2
+            
                 
             
             if normalize_color:
@@ -55,7 +54,9 @@ def image_generator(filenames, labels, channels, normalize_color=False, channel_
                 for ch in range(image.shape[-1]):
                     image[...,ch] = (image[...,ch] - image[...,ch].mean()) / image[...,ch].std()
                 # image = (image - image.mean()) / image.std()
-                
+            
+            if channel_3_avg_12:
+                image[...,2] = (image[...,0] + image[...,1]) / 2
             # ic(type(image), type(label), type(label[0]), type(image[0]))
             
             yield image, label
@@ -106,7 +107,7 @@ def main(conf):
             tf.TensorSpec(shape=(*cfg.input_shape, cfg.n_channels), dtype=tf.float32),
             tf.TensorSpec(shape=(4), dtype=tf.uint8)  # Assuming labels are strings
         ),
-        args=(images_train, labels_train, cfg.channels_lists[cfg.channels], cfg.normalize_ch_color)
+        args=(images_train, labels_train, cfg.channels_lists[cfg.channels], cfg.normalize_ch_color, cfg.channel_3_avg_12)
     )
     
     # val_dataset = train_dataset
@@ -116,7 +117,7 @@ def main(conf):
             tf.TensorSpec(shape=(*cfg.input_shape, cfg.n_channels), dtype=tf.float32),
             tf.TensorSpec(shape=(4), dtype=tf.uint8)  # Assuming labels are strings
         ),
-        args=(val_images, val_labels, cfg.channels_lists[cfg.channels], cfg.normalize_ch_color)
+        args=(val_images, val_labels, cfg.channels_lists[cfg.channels], cfg.normalize_ch_color, cfg.channel_3_avg_12)
     )
     print(f"Length train: {len(images_train)} val: {len(val_images)} classes tr: {labels_train.sum(axis=0)} val: {val_labels.sum(axis=0)}")
     

@@ -13,8 +13,8 @@ def get_model(cfg):
     x = base_model.output
     x = GlobalAveragePooling2D()(x)
     # x = Dropout(0.5)(x)
-    x = Dense(cfg.model.linear_1, activation='relu')(x)
-    x = Dropout(cfg.model.dropout_1)(x)
+    x = Dense(cfg.model_pars.linear_1, activation='relu')(x)
+    x = Dropout(cfg.model_pars.dropout_1)(x)
     output_tensor = Dense(4, activation='softmax')(x)
     model = Model(inputs=base_model.input, outputs=output_tensor)
     model.compile(optimizer=Adam(learning_rate=0.0001), 

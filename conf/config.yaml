@@ -16,17 +16,19 @@ hydra:
 basic:
   # experiment_name: test_0
   channels_lists: [[1,2,3],[1,2,4],[1,2,5],[1,3,4],[1,3,5],[1,4,5],[2,3,4],[2,3,5],[2,4,5],[3,4,5]]
-  experiment_name: test_7_architecture
+  # channels_lists: [[6,7]]
+  # experiment_name: test_7_bf
+  experiment_name: test_7_search
   channels: 0
   dataset_path: dset
   normalize_ch_color: True
-  freeze_backbone: True
+  freeze_backbone: False
   epochs: 50
-  batch_size: 1024
-  normalize_bw: True
+  batch_size: 512
+  normalize_bw: True # used in blobs
   normalize_bw_non_one: True
-  normalize_color: False
-  convert_to_uint8: True
+  normalize_color: True # TODO: use the shit
+  # convert_to_uint8: True 
   segmentation_channel: 1
   input_shape: [224, 224]
   image_shape: [1080, 1080]
@@ -36,11 +38,11 @@ basic:
   weights: 'imagenet' # or null
   d: 75
   channel_3_avg_12: False
-  shuffle_dataset: True
+  # shuffle_dataset: True
   model: ResNet50
   splits:
-    test: 0.2
+    test: 0.97
     val: 0.2
-  model:
+  model_pars:
     linear_1: 256
     dropout_1: 0.2
