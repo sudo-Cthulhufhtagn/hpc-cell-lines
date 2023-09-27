@@ -143,21 +143,29 @@ def main(conf):
     mlflow.set_experiment(cfg.experiment_name)
     
     with mlflow.start_run():
-        # run mlflow
-        checkpoint_filepath = 'checkpoint'
-        model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
-            filepath=checkpoint_filepath,
-            save_weights_only=True,
+        # checkpoint_filepath = 'checkpoint'
+        # model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+        #     filepath=checkpoint_filepath,
+        #     save_weights_only=True,
+        #     monitor='val_accuracy',
+        #     mode='max',
+        #     save_best_only=True)
+        early_stopping = tf.keras.callbacks.EarlyStopping(
             monitor='val_accuracy',
+            # min_delta=0,
+            patience=2,
+            verbose=0,
             mode='max',
-            save_best_only=True)
-        
+            # baseline=None,
+            # restore_best_weights=True,
+            start_from_epoch=5
+        )
         # mlflow.tensorflow.autolog()
         history = model.fit(
             train_dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE), 
             batch_size=batch_size, 
             epochs=cfg.epochs,
-            # callbacks=[model_checkpoint_callback],
+            callbacks=[early_stopping],
             validation_data=val_dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE),
             )
         
