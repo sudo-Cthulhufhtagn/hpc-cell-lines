@@ -152,6 +152,7 @@ def mkdir(path):
         return True
     return False
 
+@memory.cache
 def create_dataset(X, y, pars, top, cwd, create_only=False) -> Tuple[np.ndarray, np.ndarray]:
     """
     Prepare dataset for training.
@@ -159,7 +160,6 @@ def create_dataset(X, y, pars, top, cwd, create_only=False) -> Tuple[np.ndarray,
     """
     images_train = []
     labels_train = []
-    channels = pars.channels
     dset_path = pars.dataset_path
     dset_name = 'i{}_d{}_pad{}'.format(pars.input_shape[0], pars.d, pars.padding)
     dset_path = os.path.join(cwd, dset_path, dset_name)
@@ -212,7 +212,7 @@ def create_dataset(X, y, pars, top, cwd, create_only=False) -> Tuple[np.ndarray,
     #         #         labels.extend([indx]*len(keypoints))
     #         #         break
     #         break
-        
+    if create_only: return
     n_cls = 4
     # ic(X['__URL'].str.contains(os.listdir(dset_path)[0].split('_')[0]).any())
     # ic(os.listdir(dset_path)[0].split('_')[0])

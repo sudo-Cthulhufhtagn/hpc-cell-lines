@@ -15,11 +15,11 @@ basic:
   # experiment_name: test_0
   channels_lists: [[1,2,3],[1,2,4],[1,2,5],[1,3,4],[1,3,5],[1,4,5],[2,3,4],[2,3,5],[2,4,5],[3,4,5]]
   experiment_name: test_5
-  channels: [3,4,5]
+  channels: 0
   dataset_path: dset
   normalize_ch_color: True
-  freeze_backbone: False
-  epochs: 20
+  freeze_backbone: True
+  epochs: 50
   batch_size: 512
   normalize_bw: True
   normalize_bw_non_one: True
@@ -37,5 +37,5 @@ basic:
   shuffle_dataset: True
   model: ResNet50
   splits:
-    test: 0.9
+    test: 0.95
     val: 0.2

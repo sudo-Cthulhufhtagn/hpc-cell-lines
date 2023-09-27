@@ -13,6 +13,7 @@ from sklearn.model_selection import train_test_split
 from icecream import ic
 #%%
 import re
+print(f"[CHECK]: GPU - {tf.config.list_physical_devices('GPU')}")
 #cut everything after _ch including _ch
 # re.sub(r'_ch\d.*', '', 'image_ch1.png')
 # g = 'dfnxjkb,-ch09.gg'
@@ -25,7 +26,6 @@ import re
 
 #%%
 # print debug for gpu
-print(f"[CHECK]: GPU - {tf.config.list_physical_devices('GPU')}")
 
 def image_generator(filenames, labels, channels, normalize_color=False):
     for filename, label in zip(filenames, labels):
@@ -70,6 +70,7 @@ def main(conf):
     cwd = utils.get_original_cwd()
     print("Craeting largest dataset")
     create_dataset(dataset, classes, cfg, top, cwd, True)
+    print(f"Dataset distr: {dataset.shape}, {classes.value_counts()}")
     train_X, test_X, train_y, test_y = train_test_split(dataset, 
                                                         classes, 
                                                         test_size=cfg.splits.test, 

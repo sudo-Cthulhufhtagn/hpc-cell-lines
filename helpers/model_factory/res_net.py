@@ -11,7 +11,9 @@ def get_model(cfg):
             layer.trainable = False
     
     x = base_model.output
-    # x = GlobalAveragePooling2D()(x)
+    x = GlobalAveragePooling2D()(x)
+    x = Dropout(0.5)(x)
+    x = Dense(256, activation='relu')(x)
     # x = Dropout(0.5)(x)
     output_tensor = Dense(4, activation='softmax')(x)
     model = Model(inputs=base_model.input, outputs=output_tensor)
