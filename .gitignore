@@ -5,3 +5,4 @@ cac
 multirun
 outputs/
 core.*
+slurm*

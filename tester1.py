@@ -56,7 +56,7 @@ def image_generator(filenames, labels, channels, normalize_color=False, channel_
                 # image = (image - image.mean()) / image.std()
             
             if channel_3_avg_12:
-                image[...,2] = (image[...,0] + image[...,1]) / 2
+                image = np.dstack([image, ((image[...,0] + image[...,1]) / 2)[..., np.newaxis]])
             # ic(type(image), type(label), type(label[0]), type(image[0]))
             
             yield image, label
@@ -160,6 +160,10 @@ def main(conf):
         #     monitor='val_accuracy',
         #     mode='max',
         #     save_best_only=True)
+        mlflow.log_params(cfg)
+        mlflow.log_param('job_id', os.getenv('SLURM_JOB_ID'))
+        
+        
         early_stopping = tf.keras.callbacks.EarlyStopping(
             monitor='val_accuracy',
             # min_delta=0,
@@ -183,7 +187,6 @@ def main(conf):
         monitor = "val_accuracy"
         
         mlflow.log_param('model', cfg.model)
-        mlflow.log_params(cfg)
         mlflow.log_artifacts(utils.to_absolute_path('conf'))
         mlflow.tensorflow.log_model(model, 'model')
         # get os git hash commit
