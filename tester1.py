@@ -162,6 +162,8 @@ def main(conf):
         #     save_best_only=True)
         mlflow.log_params(cfg)
         mlflow.log_param('job_id', os.getenv('SLURM_JOB_ID'))
+        mlflow.log_param('git_commit', os.popen('git rev-parse HEAD').read().strip())
+        mlflow.log_artifacts(utils.to_absolute_path('conf'))
         
         
         early_stopping = tf.keras.callbacks.EarlyStopping(
@@ -186,11 +188,9 @@ def main(conf):
         keys = history.history.keys()
         monitor = "val_accuracy"
         
-        mlflow.log_param('model', cfg.model)
-        mlflow.log_artifacts(utils.to_absolute_path('conf'))
+        # mlflow.log_param('model', cfg.model)
         mlflow.tensorflow.log_model(model, 'model')
         # get os git hash commit
-        mlflow.log_param('git_commit', os.popen('git rev-parse HEAD').read().strip())
         # mlflow.log_metric('val_accuracy', history.history['val_accuracy'][-1])
         
         # Example usage:
