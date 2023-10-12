@@ -2,3 +2,7 @@ __pycache__
 dset
 mlruns
 cac
+multirun
+outputs/
+core.*
+slurm*

@@ -13,6 +13,7 @@ from sklearn.model_selection import train_test_split
 from icecream import ic
 #%%
 import re
+print(f"[CHECK]: GPU - {tf.config.list_physical_devices('GPU')}")
 #cut everything after _ch including _ch
 # re.sub(r'_ch\d.*', '', 'image_ch1.png')
 # g = 'dfnxjkb,-ch09.gg'
@@ -25,9 +26,8 @@ import re
 
 #%%
 # print debug for gpu
-print(f"[CHECK]: GPU - {tf.config.list_physical_devices('GPU')}")
 
-def image_generator(filenames, labels, channels, normalize_color=False):
+def image_generator(filenames, labels, channels, normalize_color=False, channel_3_avg_12=False):
     for filename, label in zip(filenames, labels):
         # ic(filename, label)
         filename = filename.decode('utf-8')
@@ -46,10 +46,17 @@ def image_generator(filenames, labels, channels, normalize_color=False):
             #     ic(imgs[i].shape)
             image = np.stack(imgs, axis=-1)
             
+            
+                
+            
             if normalize_color:
                 # using mean and standard deviation of all channels
-                image = (image - image.mean()) / image.std()
-                
+                for ch in range(image.shape[-1]):
+                    image[...,ch] = (image[...,ch] - image[...,ch].mean()) / image[...,ch].std()
+                # image = (image - image.mean()) / image.std()
+            
+            if channel_3_avg_12:
+                image = np.dstack([image, ((image[...,0] + image[...,1]) / 2)[..., np.newaxis]])
             # ic(type(image), type(label), type(label[0]), type(image[0]))
             
             yield image, label
@@ -61,14 +68,20 @@ def main(conf):
     top = os.path.join(hydra.utils.get_original_cwd(),
                        top)
     # np.random(42)
-    ic(cfg.channels, cfg.channels_lists[cfg.channels])
+    # ic(cfg.channels, cfg.channels_lists[cfg.channels])
+    print("Loading annotations")
     dataset, classes = get_annots(os.path.join(top, 'image.index.txt'))
+    
+    cwd = utils.get_original_cwd()
+    print("Craeting largest dataset")
+    create_dataset(dataset, classes, cfg, top, cwd, True)
+    print(f"Dataset distr: {dataset.shape}, {classes.value_counts()}")
     train_X, test_X, train_y, test_y = train_test_split(dataset, 
                                                         classes, 
-                                                        test_size=0.5, 
+                                                        test_size=cfg.splits.test, 
                                                         random_state=42, 
-                                                        # stratify=classes, # TODO: uncomment
-                                                        shuffle=False, )
+                                                        stratify=classes,
+                                                        shuffle=True, )
     # split also to train and val
     
     # images_train, labels_train = create_dataset(train_X, train_y, cfg, top)
@@ -82,21 +95,31 @@ def main(conf):
     if cfg.model == 'ResNet50':
         from helpers.model_factory.res_net import get_model
     
-    train_percentage = cfg.train_val_split
-    train_images, val_images, train_labels, val_labels = train_test_split(train_X, train_y, test_size=1-train_percentage, random_state=42, stratify=train_y)
-    cwd = utils.get_original_cwd()
-    # images_train, labels_train = create_dataset(train_images, train_labels, cfg, top, cwd)
-    images_train, labels_train = create_dataset(dataset, classes, cfg, top, cwd)
-    # val_images, val_labels = create_dataset(val_images, val_labels, cfg, top, cwd)
+    train_images, val_images, train_labels, val_labels = train_test_split(train_X, train_y, test_size=cfg.splits.val, random_state=42, stratify=train_y)
+    print("Loading train dataset")
+    images_train, labels_train = create_dataset(train_images, train_labels, cfg, top, cwd)
+    # images_train, labels_train = create_dataset(dataset, classes, cfg, top, cwd)
+    print("Loading val dataset")
+    val_images, val_labels = create_dataset(val_images, val_labels, cfg, top, cwd)
     train_dataset = tf.data.Dataset.from_generator(
         image_generator,
         output_signature=(
             tf.TensorSpec(shape=(*cfg.input_shape, cfg.n_channels), dtype=tf.float32),
             tf.TensorSpec(shape=(4), dtype=tf.uint8)  # Assuming labels are strings
         ),
-        args=(images_train, labels_train, cfg.channels_lists[cfg.channels], True)
+        args=(images_train, labels_train, cfg.channels_lists[cfg.channels], cfg.normalize_ch_color, cfg.channel_3_avg_12)
     )
-    val_dataset = train_dataset
+    
+    # val_dataset = train_dataset
+    val_dataset = tf.data.Dataset.from_generator(
+        image_generator,
+        output_signature=(
+            tf.TensorSpec(shape=(*cfg.input_shape, cfg.n_channels), dtype=tf.float32),
+            tf.TensorSpec(shape=(4), dtype=tf.uint8)  # Assuming labels are strings
+        ),
+        args=(val_images, val_labels, cfg.channels_lists[cfg.channels], cfg.normalize_ch_color, cfg.channel_3_avg_12)
+    )
+    print(f"Length train: {len(images_train)} val: {len(val_images)} classes tr: {labels_train.sum(axis=0)} val: {val_labels.sum(axis=0)}")
     
     # val_dataset = train_dataset.take(int(len(train_dataset)*(1-train_percentage)))
     # train_dataset = train_dataset.skip(int(len(train_dataset)*train_percentage))
@@ -130,31 +153,44 @@ def main(conf):
     mlflow.set_experiment(cfg.experiment_name)
     
     with mlflow.start_run():
-        # run mlflow
-        checkpoint_filepath = 'checkpoint'
-        model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
-            filepath=checkpoint_filepath,
-            save_weights_only=True,
-            monitor='val_accuracy',
-            mode='max',
-            save_best_only=True)
+        # checkpoint_filepath = 'checkpoint'
+        # model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+        #     filepath=checkpoint_filepath,
+        #     save_weights_only=True,
+        #     monitor='val_accuracy',
+        #     mode='max',
+        #     save_best_only=True)
+        mlflow.log_params(cfg)
+        mlflow.log_param('job_id', os.getenv('SLURM_JOB_ID'))
+        mlflow.log_param('git_commit', os.popen('git rev-parse HEAD').read().strip())
+        mlflow.log_artifacts(utils.to_absolute_path('conf'))
         
+        
+        early_stopping = tf.keras.callbacks.EarlyStopping(
+            monitor='val_accuracy',
+            # min_delta=0,
+            patience=2,
+            verbose=0,
+            mode='max',
+            # baseline=None,
+            # restore_best_weights=True,
+            start_from_epoch=5
+        )
         # mlflow.tensorflow.autolog()
         history = model.fit(
-            train_dataset.batch(batch_size).prefetch(1), 
+            train_dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE), 
             batch_size=batch_size, 
             epochs=cfg.epochs,
-            # callbacks=[model_checkpoint_callback],
-            validation_data=val_dataset.batch(batch_size),
+            callbacks=[early_stopping],
+            validation_data=val_dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE),
             )
         
         keys = history.history.keys()
         monitor = "val_accuracy"
         
-        mlflow.log_param('model', cfg.model)
-        mlflow.log_params(cfg)
-        mlflow.log_artifacts(utils.to_absolute_path('conf'))
+        # mlflow.log_param('model', cfg.model)
         mlflow.tensorflow.log_model(model, 'model')
+        # get os git hash commit
         # mlflow.log_metric('val_accuracy', history.history['val_accuracy'][-1])
         
         # Example usage:

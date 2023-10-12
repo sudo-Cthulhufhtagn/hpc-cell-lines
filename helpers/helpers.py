@@ -31,7 +31,7 @@ def blobs_cutter(path, normalize_bw=False):
     return [list(map(int, p.pt)) for p in keypoints]
 
 
-
+@memory.cache
 def get_annots(path):
     """Craetes dataset of files and classes.
 
@@ -41,6 +41,7 @@ def get_annots(path):
     
     df = pd.read_csv(path, delimiter='\t', skiprows=2)
     df = df.iloc[:-2]
+    df = df[df['Channel'] == 1] # interesting
     df['Row'] = df['Row'].astype('int')
     df['Column'] = df['Column'].astype('int')
     
@@ -77,6 +78,7 @@ def get_annots(path):
     
     return ch1#, tr0
 
+@memory.cache
 def impreprocessor(paths: list, pars: Parametrizer, crop_list: list, save_path, label) -> np.ndarray:
     """
     Read images from paths and return numpy array of shape (len(paths), *input_shape, n_channels)
@@ -87,14 +89,14 @@ def impreprocessor(paths: list, pars: Parametrizer, crop_list: list, save_path, 
     # craete np array with zeros of shape (len(paths), *input_shape, n_channels)
     images_crop = np.zeros((len(crop_list), *pars.input_shape, pars.n_channels))
     images_crop = np.zeros((len(crop_list), *pars.input_shape, 7))
-    image = np.zeros((*pars.image_shape, len(paths)), )#dtype='uint16')
+    image = np.zeros((*pars.image_shape, len(paths)), dtype='uint16')
     # print(image.dtype)
     
     for i, path in enumerate(paths):
         img = cv2.imread(path, -1)
         if pars.normalize_bw_non_one:
-            img = (img-img.min()) / img.max() * 255
-            img = img.astype('uint8')
+            img = (img-img.min()) / img.max() * (2**16 - 1)
+            img = img.astype('uint16')
         
         image[...,i] = img
         
@@ -162,18 +164,19 @@ def mkdir(path):
         return True
     return False
 
-def create_dataset(X, y, pars, top, cwd) -> Tuple[np.ndarray, np.ndarray]:
+@memory.cache
+def create_dataset(X, y, pars, top, cwd, create_only=False) -> Tuple[np.ndarray, np.ndarray]:
     """
     Prepare dataset for training.
     #TODO: replace top
     """
     images_train = []
     labels_train = []
-    channels = pars.channels
     dset_path = pars.dataset_path
     dset_name = 'i{}_d{}_pad{}'.format(pars.input_shape[0], pars.d, pars.padding)
     dset_path = os.path.join(cwd, dset_path, dset_name)
     if mkdir(dset_path):
+        print("Dataset doesn't exist")
         for i in tqdm.tqdm(range(len(X))):
             row = X.iloc[i]
             label = y.iloc[i]
@@ -191,12 +194,14 @@ def create_dataset(X, y, pars, top, cwd) -> Tuple[np.ndarray, np.ndarray]:
                 #     if row['Row'] in positions[indx][0] and row['Column'] in positions[indx][1]:
                 #         labels.extend([indx]*len(keypoints))
                 #         break
-                break # TODO: remove this shit
-    else:
-        for file in os.listdir(dset_path):
+                # break # TODO: remove this shit
+    elif not create_only:
+        print("Dataset exists")
+        for file in tqdm.tqdm(os.listdir(dset_path)):
             # check if filename is matching at least part of the string from train_X['__URl]
-            
-            if X['__URL'].str.contains(file.split('-ch')[0], case=False).any():
+            matches = X['__URL'].str.contains(file.split('-ch')[0], case=False)
+            if matches.any():
+                # X = X[~matches]
                 images_train.append(os.path.join(dset_path, file))
                 match = re.search(r'_cl\d', file).group()
                 # ic(match)
@@ -220,7 +225,7 @@ def create_dataset(X, y, pars, top, cwd) -> Tuple[np.ndarray, np.ndarray]:
     #         #         labels.extend([indx]*len(keypoints))
     #         #         break
     #         break
-        
+    if create_only: return
     n_cls = 4
     # ic(X['__URL'].str.contains(os.listdir(dset_path)[0].split('_')[0]).any())
     # ic(os.listdir(dset_path)[0].split('_')[0])

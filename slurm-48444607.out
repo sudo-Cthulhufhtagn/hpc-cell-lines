@@ -1,0 +1,49 @@
+2023-09-27 22:45:21.963744: I tensorflow/core/util/port.cc:110] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2023-09-27 22:45:22.024303: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX512F AVX512_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2023-09-27 22:45:23.563514: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+/gpfs/space/home/aleksanm/BiomedCV/to_send2/tester1.py:63: UserWarning: 
+The version_base parameter is not specified.
+Please specify a compatability version level, or None.
+Will assume defaults for version 1.1
+  @hydra.main(config_path="conf", config_name="config")
+Traceback (most recent call last):
+  File "/gpfs/space/home/aleksanm/.conda/envs/tf/lib/python3.10/site-packages/hydra/_internal/utils.py", line 220, in run_and_report
+    return func()
+  File "/gpfs/space/home/aleksanm/.conda/envs/tf/lib/python3.10/site-packages/hydra/_internal/utils.py", line 466, in <lambda>
+    lambda: hydra.multirun(
+  File "/gpfs/space/home/aleksanm/.conda/envs/tf/lib/python3.10/site-packages/hydra/_internal/hydra.py", line 143, in multirun
+    cfg = self.compose_config(
+  File "/gpfs/space/home/aleksanm/.conda/envs/tf/lib/python3.10/site-packages/hydra/_internal/hydra.py", line 594, in compose_config
+    cfg = self.config_loader.load_configuration(
+  File "/gpfs/space/home/aleksanm/.conda/envs/tf/lib/python3.10/site-packages/hydra/_internal/config_loader_impl.py", line 142, in load_configuration
+    return self._load_configuration_impl(
+  File "/gpfs/space/home/aleksanm/.conda/envs/tf/lib/python3.10/site-packages/hydra/_internal/config_loader_impl.py", line 244, in _load_configuration_impl
+    parsed_overrides, caching_repo = self._parse_overrides_and_create_caching_repo(
+  File "/gpfs/space/home/aleksanm/.conda/envs/tf/lib/python3.10/site-packages/hydra/_internal/config_loader_impl.py", line 230, in _parse_overrides_and_create_caching_repo
+    self._process_config_searchpath(config_name, parsed_overrides, caching_repo)
+  File "/gpfs/space/home/aleksanm/.conda/envs/tf/lib/python3.10/site-packages/hydra/_internal/config_loader_impl.py", line 159, in _process_config_searchpath
+    loaded = repo.load_config(config_path=config_name)
+  File "/gpfs/space/home/aleksanm/.conda/envs/tf/lib/python3.10/site-packages/hydra/_internal/config_repository.py", line 348, in load_config
+    ret = self.delegate.load_config(config_path=config_path)
+  File "/gpfs/space/home/aleksanm/.conda/envs/tf/lib/python3.10/site-packages/hydra/_internal/config_repository.py", line 91, in load_config
+    ret = source.load_config(config_path=config_path)
+  File "/gpfs/space/home/aleksanm/.conda/envs/tf/lib/python3.10/site-packages/hydra/_internal/core_plugins/file_config_source.py", line 31, in load_config
+    cfg = OmegaConf.load(f)
+  File "/gpfs/space/home/aleksanm/.conda/envs/tf/lib/python3.10/site-packages/omegaconf/omegaconf.py", line 192, in load
+    obj = yaml.load(file_, Loader=get_yaml_loader())
+  File "/gpfs/space/home/aleksanm/.conda/envs/tf/lib/python3.10/site-packages/yaml/__init__.py", line 81, in load
+    return loader.get_single_data()
+  File "/gpfs/space/home/aleksanm/.conda/envs/tf/lib/python3.10/site-packages/yaml/constructor.py", line 51, in get_single_data
+    return self.construct_document(node)
+  File "/gpfs/space/home/aleksanm/.conda/envs/tf/lib/python3.10/site-packages/yaml/constructor.py", line 60, in construct_document
+    for dummy in generator:
+  File "/gpfs/space/home/aleksanm/.conda/envs/tf/lib/python3.10/site-packages/yaml/constructor.py", line 413, in construct_yaml_map
+    value = self.construct_mapping(node)
+  File "/gpfs/space/home/aleksanm/.conda/envs/tf/lib/python3.10/site-packages/omegaconf/_utils.py", line 144, in construct_mapping
+    raise yaml.constructor.ConstructorError(
+yaml.constructor.ConstructorError: while constructing a mapping
+  in "/gpfs/space/home/aleksanm/BiomedCV/to_send2/conf/config.yaml", line 19, column 3
+found duplicate key model
+  in "/gpfs/space/home/aleksanm/BiomedCV/to_send2/conf/config.yaml", line 45, column 3
+[CHECK]: GPU - [PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU')]
