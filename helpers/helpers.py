@@ -1,3 +1,4 @@
+from omegaconf import DictConfig, ListConfig
 import pandas as pd
 from helpers.config import *
 import cv2
@@ -21,7 +22,7 @@ memory = Memory(utils.to_absolute_path('cac'), verbose=0)
 def blobs_cutter(path, normalize_bw=False):
     im = cv2.imread(path, -1)
     if normalize_bw: # TODO: pars.normalize_bw replace with normalize_bw
-        im = im / im.max() * 255
+        im = (im -im.min()) / im.max() * 255
         im = im.astype('uint8')
     thr = threshold_local(im, 301, 'gaussian', offset = 0)
     im = (im > thr).astype(np.uint8)*255
@@ -77,6 +78,38 @@ def get_annots(path):
     ch1.loc[(ch1['Column'].isin(positions[3][1])) & (ch1['Row'].isin(positions[3][0])), 'class'] = 3
     
     return ch1#, tr0
+
+@memory.cache
+def inflate(data, top_path, row=False):
+    # result_data = pd.DataFrame(columns=data.columns) # broken due to column
+    result_data = pd.DataFrame()
+    if row:
+        data = data.to_frame().T
+    for row in data.iterrows():
+        blobs = blobs_cutter(os.path.join(top_path, row[1]['__URL']))
+        # add new column to result_data and start inserting list of blobs into column 'keypoints' and additional column 'id', and preserve other parent columns 
+        for id in range(len(blobs)):
+            result_data = pd.concat(
+                [
+                    result_data,
+                    pd.DataFrame(
+                        {
+                            **row[1].to_dict(),
+                            'keypoints': [blobs[id]],
+                            'id': [id]
+                        }
+                    )
+                ]
+            )
+            # result_data = result_data.append(
+            #     {
+            #         **row[1].to_dict(),
+            #         'keypoints': blobs[id],
+            #         'id': id
+            #     }, ignore_index=True
+            # )
+    return result_data
+    
 
 @memory.cache
 def impreprocessor(paths: list, pars: Parametrizer, crop_list: list, save_path, label) -> np.ndarray:
@@ -163,6 +196,24 @@ def mkdir(path):
         os.makedirs(path)
         return True
     return False
+
+# TODO: implement logging in main
+# from https://medium.com/optuna/easy-hyperparameter-management-with-hydra-mlflow-and-optuna-783730700e7d
+def log_params_from_omegaconf_dict(params, mlflow):
+    for param_name, element in params.items():
+        _explore_recursive(param_name, element, mlflow)
+
+def _explore_recursive(parent_name, element, mlflow):
+    if isinstance(element, DictConfig):
+        for k, v in element.items():
+            if isinstance(v, DictConfig) or isinstance(v, ListConfig):
+                _explore_recursive(f'{parent_name}.{k}', v)
+            else:
+                mlflow.log_param(f'{parent_name}.{k}', v)
+    elif isinstance(element, ListConfig):
+        for i, v in enumerate(element):
+            mlflow.log_param(f'{parent_name}.{i}', v)
+
 
 @memory.cache
 def create_dataset(X, y, pars, top, cwd, create_only=False) -> Tuple[np.ndarray, np.ndarray]:

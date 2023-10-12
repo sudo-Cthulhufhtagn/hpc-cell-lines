@@ -1,6 +1,6 @@
 defaults:
-# - base: test
 - _self_
+# - basic: test
 
 hydra:
   sweeper:
@@ -23,9 +23,8 @@ basic:
   experiment_name: test_7_bf_pre_v2
   channels: 0
   dataset_path: dset
-  freeze_backbone: False
-  epochs: 50
-  batch_size: 128
+  epochs: 1
+  batch_size: 16
   normalize_bw: True # used in blobs
   normalize_bw_non_one: True
   # normalize_color: True # TODO: use the shit
@@ -35,16 +34,19 @@ basic:
   input_shape: [224, 224]
   image_shape: [1080, 1080]
   n_channels: 3
-  padding: rescale #value
-  padding_value: 0
-  weights: null # or null | 'imagenet'
+  # padding: rescale #value
+  # padding_value: 0
   d: 75
   channel_3_avg_12: True # this one bf
   # shuffle_dataset: True
-  model: ResNet50
+  model:
+    name: ResNet50
+    weights: null # or null | 'imagenet'
+    freeze_backbone: False
+    model_pars:
+      linear_1: 256
+      dropout_1: 0.2
   splits:
     test: 0.1
     val: 0.2
-  model_pars:
-    linear_1: 256
-    dropout_1: 0.2
+  

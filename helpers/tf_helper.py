@@ -1,3 +1,4 @@
+import os
 import tensorflow as tf
 import numpy as np
 import re
@@ -11,18 +12,22 @@ class CustomDataGen(tf.keras.utils.Sequence):
     def __init__(self, 
                  df, 
                  batch_size,
-                 input_size=(224, 224, 3),
+                 top_path,
+                 input_size=(224, 224),
                  channels=[6,7],
                  bbox_size=60,
                  n_classes=4,
+                 normalize_ch_color=False,
                  avg_23=False,
                  shuffle=True):
         
         self.df = df.copy()
+        self.top = top_path
         self.bbox_size = bbox_size
         self.channels = channels
         self.n_classes = n_classes
         self.avg_23 = avg_23
+        self.normalize_ch_color = normalize_ch_color
         
         # self.classed_df = [
         #     len(df[df['class'] == i] ) for i in classes
@@ -49,19 +54,40 @@ class CustomDataGen(tf.keras.utils.Sequence):
         for ch in self.channels:
             path = row['__URL']
             path = re.sub(r'-ch0\d', f'-ch0{ch}', path)
-            imgs.append(cv2.imread(path, -1))
+            path = os.path.join(self.top, path)
+            img = cv2.imread(path, -1)
+            
+            keypoints = row['keypoints']
+            x, y = keypoints[0], keypoints[1]
+            d = self.bbox_size
+            max_x = img.shape[1]
+            max_y = img.shape[0]
+            start = (
+                relu(x - d) - relu(x+d-max_x), 
+                min(y + d, max_y) + relu(d-y)
+            )
+            stop = (
+                min(x+d, max_x) + relu(d-x),
+                relu(y-d) - relu(y+d-max_y)
+            )
+            
+            imgs.append(
+                cv2.resize(img[stop[1]:start[1], start[0]:stop[0]], self.input_size[:2])
+                )
             
         image = np.stack(imgs, axis=-1)
+        
+        if self.normalize_ch_color:
+            # using mean and standard deviation of all channels
+            for ch in range(image.shape[-1]):
+                image[...,ch] = (image[...,ch] - image[...,ch].mean()) / image[...,ch].std()
+            # image = (image - image.mean()) / image.std()
+        
+        if self.avg_23:
+                image = np.dstack([image, ((image[...,0] + image[...,1]) / 2)[..., np.newaxis]])
             
-        # xmin, ymin, w, h = bbox['x'], bbox['y'], bbox['width'], bbox['height']
 
-        # image = tf.keras.preprocessing.image.load_img(path)
-        # image_arr = tf.keras.preprocessing.image.img_to_array(image)
-
-        # image_arr = image_arr[ymin:ymin+h, xmin:xmin+w]
-        # image_arr = tf.image.resize(image_arr,(target_size[0], target_size[1])).numpy()
-
-        return image_arr/255.
+        return image
     
     def __get_output(self, label):
         return tf.keras.utils.to_categorical(label, num_classes=self.n_classes)
@@ -69,10 +95,10 @@ class CustomDataGen(tf.keras.utils.Sequence):
     def __get_data(self, batches):
         # Generates data containing batch_size samples
 
-        X_batch = [self.__get_input(row) for row in batches]
+        X_batch = [self.__get_input(row[1]) for row in batches.iterrows()]
         y_batch = [self.__get_output(row) for row in batches['class']]
 
-        return X_batch, y_batch
+        return np.asarray(X_batch), np.asarray(y_batch)
     
     def __getitem__(self, index):
         

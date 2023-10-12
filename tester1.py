@@ -7,9 +7,10 @@ import mlflow
 import hydra
 from hydra import utils
 import optuna
-from helpers.helpers import get_annots, create_dataset
+from helpers.helpers import get_annots, create_dataset, inflate
 from helpers.config import *
 from sklearn.model_selection import train_test_split
+from helpers.tf_helper import CustomDataGen
 from icecream import ic
 #%%
 import re
@@ -70,18 +71,42 @@ def main(conf):
     # np.random(42)
     # ic(cfg.channels, cfg.channels_lists[cfg.channels])
     print("Loading annotations")
-    dataset, classes = get_annots(os.path.join(top, 'image.index.txt'))
+    dataset = get_annots(os.path.join(top, 'image.index.txt'))
+    print("Loading train dataset")
+    # train_set = inflate(dataset.iloc[0:1], top)
+    # test_set = dataset.iloc[0:1]
+    train_set, test_set = train_test_split(dataset, test_size=cfg.splits.test, random_state=42, stratify=dataset['class'])
+    train_set, val_set = train_test_split(train_set, test_size=cfg.splits.val, random_state=42, stratify=train_set['class'])
+    # train_set = inflate(train_set)
+    train_loader = CustomDataGen(train_set,
+                                 batch_size=cfg.batch_size,
+                                 top_path=top,
+                                 avg_23=cfg.channel_3_avg_12,
+                                 normalize_ch_color=cfg.normalize_ch_color,
+                                 input_size=cfg.input_shape,
+                                channels=cfg.channels_lists[cfg.channels],
+                                )
+    
+    validation_loader = CustomDataGen(val_set,
+                                 batch_size=cfg.batch_size,
+                                 top_path=top,
+                                 avg_23=cfg.channel_3_avg_12,
+                                 normalize_ch_color=cfg.normalize_ch_color,
+                                 input_size=cfg.input_shape,
+                                channels=cfg.channels_lists[cfg.channels],
+                                )
+    
+    # print(train_loader[0])
     
     cwd = utils.get_original_cwd()
-    print("Craeting largest dataset")
-    create_dataset(dataset, classes, cfg, top, cwd, True)
-    print(f"Dataset distr: {dataset.shape}, {classes.value_counts()}")
-    train_X, test_X, train_y, test_y = train_test_split(dataset, 
-                                                        classes, 
-                                                        test_size=cfg.splits.test, 
-                                                        random_state=42, 
-                                                        stratify=classes,
-                                                        shuffle=True, )
+    # create_dataset(dataset, classes, cfg, top, cwd, True)
+    # print(f"Dataset distr: {dataset.shape}, {classes.value_counts()}")
+    # train_X, test_X, train_y, test_y = train_test_split(dataset, 
+    #                                                     classes, 
+    #                                                     test_size=cfg.splits.test, 
+    #                                                     random_state=42, 
+    #                                                     stratify=classes,
+    #                                                     shuffle=True, )
     # split also to train and val
     
     # images_train, labels_train = create_dataset(train_X, train_y, cfg, top)
@@ -92,34 +117,33 @@ def main(conf):
     #                                                   # stratify=classes, # TODO: uncomment
     #                                                   shuffle=False, )
     
-    if cfg.model == 'ResNet50':
+    if cfg.model.name == 'ResNet50':
         from helpers.model_factory.res_net import get_model
     
-    train_images, val_images, train_labels, val_labels = train_test_split(train_X, train_y, test_size=cfg.splits.val, random_state=42, stratify=train_y)
-    print("Loading train dataset")
-    images_train, labels_train = create_dataset(train_images, train_labels, cfg, top, cwd)
+    # train_images, val_images, train_labels, val_labels = train_test_split(train_X, train_y, test_size=cfg.splits.val, random_state=42, stratify=train_y)
+    # images_train, labels_train = create_dataset(train_images, train_labels, cfg, top, cwd)
     # images_train, labels_train = create_dataset(dataset, classes, cfg, top, cwd)
-    print("Loading val dataset")
-    val_images, val_labels = create_dataset(val_images, val_labels, cfg, top, cwd)
-    train_dataset = tf.data.Dataset.from_generator(
-        image_generator,
-        output_signature=(
-            tf.TensorSpec(shape=(*cfg.input_shape, cfg.n_channels), dtype=tf.float32),
-            tf.TensorSpec(shape=(4), dtype=tf.uint8)  # Assuming labels are strings
-        ),
-        args=(images_train, labels_train, cfg.channels_lists[cfg.channels], cfg.normalize_ch_color, cfg.channel_3_avg_12)
-    )
+    # val_images, val_labels = create_dataset(val_images, val_labels, cfg, top, cwd)
+    # train_dataset = tf.data.Dataset.from_generator(
+    #     image_generator,
+    #     output_signature=(
+    #         tf.TensorSpec(shape=(*cfg.input_shape, cfg.n_channels), dtype=tf.float32),
+    #         tf.TensorSpec(shape=(4), dtype=tf.uint8)  # Assuming labels are strings
+    #     ),
+    #     args=(images_train, labels_train, cfg.channels_lists[cfg.channels], cfg.normalize_ch_color, cfg.channel_3_avg_12)
+    # )
     
     # val_dataset = train_dataset
-    val_dataset = tf.data.Dataset.from_generator(
-        image_generator,
-        output_signature=(
-            tf.TensorSpec(shape=(*cfg.input_shape, cfg.n_channels), dtype=tf.float32),
-            tf.TensorSpec(shape=(4), dtype=tf.uint8)  # Assuming labels are strings
-        ),
-        args=(val_images, val_labels, cfg.channels_lists[cfg.channels], cfg.normalize_ch_color, cfg.channel_3_avg_12)
-    )
-    print(f"Length train: {len(images_train)} val: {len(val_images)} classes tr: {labels_train.sum(axis=0)} val: {val_labels.sum(axis=0)}")
+    # val_dataset = tf.data.Dataset.from_generator(
+    #     image_generator,
+    #     output_signature=(
+    #         tf.TensorSpec(shape=(*cfg.input_shape, cfg.n_channels), dtype=tf.float32),
+    #         tf.TensorSpec(shape=(4), dtype=tf.uint8)  # Assuming labels are strings
+    #     ),
+    #     args=(val_images, val_labels, cfg.channels_lists[cfg.channels], cfg.normalize_ch_color, cfg.channel_3_avg_12)
+    # )
+    # print(f"Length train: {len(train_set)}:{train_loader.__len__()} val: {len(train_set)} classes tr: {train_set['class'].value_counts()} ")#val: {val_labels.sum(axis=0)}")
+    print(f"Length train: {len(train_set)}/{cfg.batch_size}:{train_loader.__len__()} classes tr: {train_set['class'].value_counts()} ")#val: {val_labels.sum(axis=0)}")
     
     # val_dataset = train_dataset.take(int(len(train_dataset)*(1-train_percentage)))
     # train_dataset = train_dataset.skip(int(len(train_dataset)*train_percentage))
@@ -178,11 +202,13 @@ def main(conf):
         )
         # mlflow.tensorflow.autolog()
         history = model.fit(
-            train_dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE), 
+            # train_dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE), 
+            train_loader,
             batch_size=batch_size, 
             epochs=cfg.epochs,
             callbacks=[early_stopping],
-            validation_data=val_dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE),
+            validation_data=validation_loader,
+            # validation_data=val_dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE),
             )
         
         keys = history.history.keys()
@@ -198,6 +224,33 @@ def main(conf):
             print(f'{key} - {history.history[key]}')
             for i in range(len(history.history[key])):
                 mlflow.log_metric(key, history.history[key][i], step=i)
+                
+        # test imagewise accuracy
+        img_max_vote = []
+        for row in test_set.iterrows():
+            test_paths = inflate(row[1], top, row=True)
+            test_loader = CustomDataGen(test_paths,
+                        batch_size=cfg.batch_size,
+                        top_path=top,
+                        avg_23=cfg.channel_3_avg_12,
+                        normalize_ch_color=cfg.normalize_ch_color,
+                        input_size=cfg.input_shape,
+                    channels=cfg.channels_lists[cfg.channels],
+                    )
+            # model predict
+            results = model.predict(test_loader)
+            # stack predictions
+            # results_s = np.stack(results, axis=0)
+            # print(results_s.shape, results.shape)
+            img_max_vote.append(results.sum(axis=0).argmax())
+            # print(f"counts - {results.sum(axis=0)}, argmax = {results.sum(axis=0).argmax()}")
+            # first find max in each row and then show the index which appears maimum number
+            # print(f"{np.unique(results.argmax(axis=1), return_counts=True)}")
+            
+        mlflow.log_metric('test_imagewise_accuracy', (np.array(img_max_vote) == test_set['class'].values).sum() / len(test_set))
+            
+            
+            
         
         # return history.history[monitor][-1]
     
