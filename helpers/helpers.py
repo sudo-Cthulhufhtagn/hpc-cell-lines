@@ -54,18 +54,28 @@ def get_annots(path):
     (df['Row'].isin(positions[2][0]))) |
     ((df['Column'].isin(positions[3][1])) &
     (df['Row'].isin(positions[3][0]))))
-    ]
+    ].copy()
     
-    tr0 = ((ch1['Column'].isin(positions[0][1])) &
-            (ch1['Row'].isin(positions[0][0])))*0
-    tr0[((ch1['Column'].isin(positions[1][1])) &
-            (ch1['Row'].isin(positions[1][0])))] = 1
-    tr0[((ch1['Column'].isin(positions[2][1])) &
-            (ch1['Row'].isin(positions[2][0])))] = 2
-    tr0[((ch1['Column'].isin(positions[3][1])) &
-            (ch1['Row'].isin(positions[3][0])))] = 3
+    # tr0 = ((ch1['Column'].isin(positions[0][1])) &
+    #         (ch1['Row'].isin(positions[0][0])))*0
+    # tr0[((ch1['Column'].isin(positions[1][1])) &
+    #         (ch1['Row'].isin(positions[1][0])))] = 1
+    # tr0[((ch1['Column'].isin(positions[2][1])) &
+    #         (ch1['Row'].isin(positions[2][0])))] = 2
+    # tr0[((ch1['Column'].isin(positions[3][1])) &
+    #         (ch1['Row'].isin(positions[3][0])))] = 3
     
-    return ch1, tr0
+    ch1.loc[:,'class'] = 0
+    # ch1.loc[((df['Column'].isin(positions[1][1])) &
+    #         (df['Row'].isin(positions[1][0]))),]['class'] = 1
+    
+    ch1.loc[(ch1['Column'].isin(positions[1][1])) & (ch1['Row'].isin(positions[1][0])), 'class'] = 1
+    
+    ch1.loc[(ch1['Column'].isin(positions[2][1])) & (ch1['Row'].isin(positions[2][0])), 'class'] = 2
+    
+    ch1.loc[(ch1['Column'].isin(positions[3][1])) & (ch1['Row'].isin(positions[3][0])), 'class'] = 3
+    
+    return ch1#, tr0
 
 def impreprocessor(paths: list, pars: Parametrizer, crop_list: list, save_path, label) -> np.ndarray:
     """
