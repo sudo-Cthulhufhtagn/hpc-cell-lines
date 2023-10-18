@@ -77,7 +77,8 @@ def main(conf):
     # test_set = dataset.iloc[0:1]
     train_set, test_set = train_test_split(dataset, test_size=cfg.splits.test, random_state=42, stratify=dataset['class'])
     train_set, val_set = train_test_split(train_set, test_size=cfg.splits.val, random_state=42, stratify=train_set['class'])
-    # train_set = inflate(train_set)
+    train_set = inflate(train_set, top)
+    val_set = inflate(val_set, top)
     train_loader = CustomDataGen(train_set,
                                  batch_size=cfg.batch_size,
                                  top_path=top,
@@ -226,11 +227,12 @@ def main(conf):
                 mlflow.log_metric(key, history.history[key][i], step=i)
                 
         # test imagewise accuracy
-        img_max_vote = []
+        img_max_vote_soft = []
+        img_max_vote_hard = []
         for row in test_set.iterrows():
             test_paths = inflate(row[1], top, row=True)
             test_loader = CustomDataGen(test_paths,
-                        batch_size=cfg.batch_size,
+                        batch_size=1,
                         top_path=top,
                         avg_23=cfg.channel_3_avg_12,
                         normalize_ch_color=cfg.normalize_ch_color,
@@ -238,16 +240,18 @@ def main(conf):
                     channels=cfg.channels_lists[cfg.channels],
                     )
             # model predict
-            results = model.predict(test_loader)
+            results = model.predict(test_loader, batch_size=1)
             # stack predictions
             # results_s = np.stack(results, axis=0)
             # print(results_s.shape, results.shape)
-            img_max_vote.append(results.sum(axis=0).argmax())
+            img_max_vote_soft.append(results.sum(axis=0).argmax())
+            img_max_vote_hard.append(np.bincount(results.argmax(axis=1)).argmax())
             # print(f"counts - {results.sum(axis=0)}, argmax = {results.sum(axis=0).argmax()}")
             # first find max in each row and then show the index which appears maimum number
             # print(f"{np.unique(results.argmax(axis=1), return_counts=True)}")
             
-        mlflow.log_metric('test_imagewise_accuracy', (np.array(img_max_vote) == test_set['class'].values).sum() / len(test_set))
+        mlflow.log_metric('test_imagewise_soft_accuracy', (np.array(img_max_vote_soft) == test_set['class'].values).sum() / len(test_set))
+        mlflow.log_metric('test_imagewise_hard_accuracy', (np.array(img_max_vote_hard) == test_set['class'].values).sum() / len(test_set))
             
             
             

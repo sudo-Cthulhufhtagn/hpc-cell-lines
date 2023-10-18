@@ -85,7 +85,7 @@ def inflate(data, top_path, row=False):
     result_data = pd.DataFrame()
     if row:
         data = data.to_frame().T
-    for row in data.iterrows():
+    for row in tqdm.tqdm(data.iterrows()):
         blobs = blobs_cutter(os.path.join(top_path, row[1]['__URL']))
         # add new column to result_data and start inserting list of blobs into column 'keypoints' and additional column 'id', and preserve other parent columns 
         for id in range(len(blobs)):
