@@ -3,6 +3,7 @@ import tensorflow as tf
 import numpy as np
 import re
 import cv2
+import tqdm
 
 neg = lambda x: x if x<0 else 0
 relu = lambda x: x if x>0 else 0
@@ -19,7 +20,8 @@ class CustomDataGen(tf.keras.utils.Sequence):
                  n_classes=4,
                  normalize_ch_color=False,
                  avg_23=False,
-                 shuffle=True):
+                 shuffle=True,
+                 preload=True):
         
         self.df = df.copy()
         self.top = top_path
@@ -40,13 +42,33 @@ class CustomDataGen(tf.keras.utils.Sequence):
         
         self.n = len(self.df)
         self.__shuffle()
-    
+        self.preload = preload
+        if preload:
+            self.load_imgs()
+            
+            
+    def load_imgs(self):
+        images = {}
+        for ch in tqdm.tqdm(self.channels):
+            for path in self.df['__URL'].unique():
+                path = re.sub(r'-ch0\d', f'-ch0{ch}', path)
+                path = os.path.join(self.top, path)
+                images[path] = cv2.imread(path, -1)
+        self.images = images
+        
     def __shuffle(self):
         self.df = self.df.sample(frac=1).reset_index(drop=True)
     
     def on_epoch_end(self):
         if self.shuffle:
             self.__shuffle()
+            
+    def load_img(self, path):
+        if self.preload:
+            return self.images[path]
+        else:
+            return cv2.imread(path, -1)
+            
     
     def __get_input(self, row):
         
@@ -55,7 +77,7 @@ class CustomDataGen(tf.keras.utils.Sequence):
             path = row['__URL']
             path = re.sub(r'-ch0\d', f'-ch0{ch}', path)
             path = os.path.join(self.top, path)
-            img = cv2.imread(path, -1)
+            img = self.load_img(path)
             
             keypoints = row['keypoints']
             x, y = keypoints[0], keypoints[1]
@@ -91,6 +113,7 @@ class CustomDataGen(tf.keras.utils.Sequence):
     
     def __get_output(self, label):
         return tf.keras.utils.to_categorical(label, num_classes=self.n_classes)
+        # return label
     
     def __get_data(self, batches):
         # Generates data containing batch_size samples

@@ -10,6 +10,7 @@ import optuna
 from helpers.helpers import get_annots, create_dataset, inflate
 from helpers.config import *
 from sklearn.model_selection import train_test_split
+from sklearn.utils import resample
 from helpers.tf_helper import CustomDataGen
 from icecream import ic
 #%%
@@ -79,6 +80,20 @@ def main(conf):
     train_set, val_set = train_test_split(train_set, test_size=cfg.splits.val, random_state=42, stratify=train_set['class'])
     train_set = inflate(train_set, top)
     val_set = inflate(val_set, top)
+    print("Inflation finished")
+    class_counts = train_set['class'].value_counts()
+    min_class_count = class_counts.min()
+    downsampled_data = pd.DataFrame()
+
+    # Iterate over unique classes and downsample each class to the minimum class count
+    for class_label in class_counts.index:
+        class_data = train_set[train_set['class'] == class_label]
+        downsampled_class_data = resample(class_data, replace=False, n_samples=min_class_count, random_state=42)
+        downsampled_data = pd.concat([downsampled_data, downsampled_class_data])
+    print(f"Length train: {len(train_set)}/{cfg.batch_size}:{len(downsampled_data)} classes tr: {train_set['class'].value_counts()} ")#val: {val_labels.sum(axis=0)}")
+        
+    train_set = downsampled_data
+    
     train_loader = CustomDataGen(train_set,
                                  batch_size=cfg.batch_size,
                                  top_path=top,
@@ -87,6 +102,7 @@ def main(conf):
                                  input_size=cfg.input_shape,
                                 channels=cfg.channels_lists[cfg.channels],
                                 )
+    print(f"Length train: {len(train_set)}/{cfg.batch_size}:{train_loader.__len__()} classes tr: {train_set['class'].value_counts()} ")#val: {val_labels.sum(axis=0)}")
     
     validation_loader = CustomDataGen(val_set,
                                  batch_size=cfg.batch_size,
@@ -144,7 +160,7 @@ def main(conf):
     #     args=(val_images, val_labels, cfg.channels_lists[cfg.channels], cfg.normalize_ch_color, cfg.channel_3_avg_12)
     # )
     # print(f"Length train: {len(train_set)}:{train_loader.__len__()} val: {len(train_set)} classes tr: {train_set['class'].value_counts()} ")#val: {val_labels.sum(axis=0)}")
-    print(f"Length train: {len(train_set)}/{cfg.batch_size}:{train_loader.__len__()} classes tr: {train_set['class'].value_counts()} ")#val: {val_labels.sum(axis=0)}")
+    # print(f"Length train: {len(train_set)}/{cfg.batch_size}:{train_loader.__len__()} classes tr: {train_set['class'].value_counts()} ")#val: {val_labels.sum(axis=0)}")
     
     # val_dataset = train_dataset.take(int(len(train_dataset)*(1-train_percentage)))
     # train_dataset = train_dataset.skip(int(len(train_dataset)*train_percentage))
@@ -198,8 +214,8 @@ def main(conf):
             verbose=0,
             mode='max',
             # baseline=None,
-            # restore_best_weights=True,
-            start_from_epoch=5
+            restore_best_weights=True,
+            start_from_epoch=3
         )
         # mlflow.tensorflow.autolog()
         history = model.fit(
@@ -252,6 +268,7 @@ def main(conf):
             
         mlflow.log_metric('test_imagewise_soft_accuracy', (np.array(img_max_vote_soft) == test_set['class'].values).sum() / len(test_set))
         mlflow.log_metric('test_imagewise_hard_accuracy', (np.array(img_max_vote_hard) == test_set['class'].values).sum() / len(test_set))
+        print('predicted:', np.bincount(img_max_vote_soft), np.array(img_max_vote_hard))
             
             
             
